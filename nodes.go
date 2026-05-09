@@ -140,7 +140,7 @@ type GradientKind uint8
 
 const (
 	GradientKindLinear GradientKind = iota
-	GradientKindRadial// Deprecated: Unimplemented
+	GradientKindRadial              // Deprecated: Unimplemented
 )
 
 // Gradient describes a color gradient used as a [*Box] background.
@@ -1823,6 +1823,9 @@ type DropdownProps struct {
 	BoxProps
 	FontConfigProps
 
+	// OptionsCornerRadius rounds the corners of the options box.
+	OptionsCornerRadius BoxCorners
+
 	// ExpandIcon is the texture shown when the list is collapsed. Defaults to
 	// [DefaultDropdownExpandIcon].
 	ExpandIcon rl.Texture2D
@@ -1851,10 +1854,11 @@ type Dropdown struct {
 	ChildlessNode
 	FontConfig
 
-	expandIcon   rl.Texture2D
-	collapseIcon rl.Texture2D
-	iconSize     float32
-	iconGap      float32
+	OptionsCornerRadius BoxCorners
+	expandIcon          rl.Texture2D
+	collapseIcon        rl.Texture2D
+	iconSize            float32
+	iconGap             float32
 
 	placeholder string
 	options     []string
@@ -1905,6 +1909,8 @@ func NewDropdown(props DropdownProps, placeholder string, options []string, sele
 func (n *Dropdown) ApplyProps(props DropdownProps) {
 	n.Box.ApplyProps(props.BoxProps)
 	n.FontConfig.ApplyProps(props.FontConfigProps)
+
+	n.OptionsCornerRadius = props.OptionsCornerRadius
 
 	if rl.IsTextureValid(props.ExpandIcon) {
 		n.expandIcon = props.ExpandIcon
@@ -1988,10 +1994,12 @@ func (n *Dropdown) Update() {
 
 	relMousePos := rl.Vector2Subtract(rl.GetMousePosition(), pos)
 
-	selected := int16(relMousePos.Y/n.size.Y) - 1
-	assert.InRange(int(selected), -1, len(n.options)-1)
+	if relMousePos.Y > n.size.Y+DropdownOptionsBoxMarginTop {
+		relMousePos.Y -= n.size.Y + DropdownOptionsBoxMarginTop
 
-	if selected >= 0 {
+		selected := int16(relMousePos.Y / n.size.Y)
+		assert.InRange(int(selected), 0, len(n.options))
+
 		if selected != n.selected {
 			n.hasChanged = true
 		}
@@ -2016,18 +2024,14 @@ func (n *Dropdown) Render() {
 
 	rect := n.Rect()
 
+	DrawRectangle(rect, n.BorderWidth, n.CornerRadius, n.BorderColor, n.BgColor)
+
 	textRect := Rect(
 		rect.X+n.padding.Left+n.iconSize+n.iconGap,
 		rect.Y+n.padding.Top,
 		rect.Width-n.iconSize*2-n.iconGap*2-n.padding.X(),
 		rect.Height-n.padding.Y(),
 	)
-
-	openRect := rect
-	if n.isOpen {
-		openRect.Height *= float32(len(n.options) + 1)
-	}
-	DrawRectangle(openRect, n.BorderWidth, n.CornerRadius, n.BorderColor, n.BgColor)
 
 	var firstElement string
 	if n.selected < 0 {
@@ -2052,17 +2056,30 @@ func (n *Dropdown) Render() {
 	rl.DrawTexturePro(iconTexture, Rect(0, 0, float32(iconTexture.Width), float32(iconTexture.Height)), iconRect, Vec2(0, 0), 0, n.FgColor)
 
 	if n.isOpen {
+		openRect := rect
+		openRect.Y += rect.Height + DropdownOptionsBoxMarginTop
+		openRect.Height *= float32(len(n.options))
+		DrawRectangle(openRect, n.BorderWidth, n.OptionsCornerRadius, n.BorderColor, n.BgColor)
+
 		separatorColor := n.BorderColor
 		if separatorColor == (Color{}) {
 			separatorColor = ColorContrast(n.BgColor, 0.4)
 		}
 
+		textRect.Y += DropdownOptionsBoxMarginTop
+
 		for i, option := range n.options {
 			textRect.Y += n.size.Y
 			DrawTextEllipsis(textRect, AlignCenter, AlignCenter, n.font, option, n.fontSize, n.charSpacing, n.FgColor)
 
-			separatorY := float32(int(rect.Y + rect.Height*float32(i+1)))
-			rl.DrawLineEx(Vec2(rect.X+5, separatorY), Vec2(rect.X+rect.Width-5, separatorY), 1, separatorColor)
+			if i == 0 {
+				continue
+			}
+
+			const SeparatorMarginX = 10
+
+			separatorY := float32(int(rect.Y+rect.Height*float32(i+1))) + DropdownOptionsBoxMarginTop
+			rl.DrawLineEx(Vec2(rect.X+SeparatorMarginX, separatorY), Vec2(rect.X+rect.Width-SeparatorMarginX, separatorY), 1, separatorColor)
 		}
 	}
 
@@ -2075,7 +2092,7 @@ func (n *Dropdown) Render() {
 func (n *Dropdown) TotalArea() rl.Rectangle {
 	rect := n.Rect()
 	if n.isOpen {
-		rect.Height *= float32(len(n.options) + 1)
+		rect.Height = rect.Height*float32(len(n.options)+1) + DropdownOptionsBoxMarginTop
 	}
 	return rect
 }

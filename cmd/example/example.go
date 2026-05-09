@@ -88,6 +88,7 @@ func main() {
 				CornerRadius: gui.Radius(10),
 				BgColor:      gui.ColorHex(0x1A1F25FF),
 			},
+			OptionsCornerRadius: gui.Radius(10),
 		}, "", getColorPairNames(), int16(selectedColorPairIdx)))
 		gradientAngleSlider := gui.AddChild(header, gui.NewSlider(gui.SliderProps{
 			BoxProps: gui.BoxProps{

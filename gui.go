@@ -130,6 +130,10 @@ var DefaultTextColor = rl.Black
 // when its ErrorMessage field is non-empty.
 var DefaultErrorColor = rl.Red
 
+// DropdownOptionsBoxMarginTop is the space between the selected item and the
+// options box.
+var DropdownOptionsBoxMarginTop float32 = 4
+
 // DefaultDropdownExpandIcon is the texture shown on a [*Dropdown] when it is
 // collapsed. It is initialised by [LoadAssets] from the bundled icon file and
 // may be replaced before creating any Dropdown nodes.
