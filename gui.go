@@ -731,17 +731,22 @@ func WrapText(bounds rl.Rectangle, font rl.Font, text string, fontSize float32, 
 
 	var wordStart int
 
-	for i := 0; i <= len(text); i++ {
+	var nextI int
+	for i := 0; i <= len(text); i = nextI {
 		var char rune
 
 		if i < len(text) {
-			var _size int
-			char, _size = utf8.DecodeRuneInString(text[i:])
-			assert.NotEqual(char, utf8.RuneError, fmt.Sprintf("RuneError = %d", _size))
+			var size int
+			char, size = utf8.DecodeRuneInString(text[i:])
+			assert.NotEqual(char, utf8.RuneError, fmt.Sprintf("RuneError = %d (text = %q)", size, text[i:]))
+
+			nextI += size
 
 			if char != ' ' && char != '\t' && char != '\n' {
 				continue
 			}
+		} else {
+			nextI += 1
 		}
 
 		word := string(text[wordStart:i])
